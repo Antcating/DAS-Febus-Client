@@ -82,14 +82,14 @@ parser.add_argument(
 
 class ZMQDASPACKET:
     def __init__(self, buffer=None):
-        self.numb_of_set = None  # number of sets: 1
-        self.timestamp = None  # timestamp: 1690449193.0428836
-        self.spacing = None  # spacing: [4.800000000000001, 2.5, 1.0] [distance, time, ]
-        self.origin = None  # origin: [0.0, 0.0, 0.0]
-        self.index = None  # index: [0, 3333, 0, 1599, 0, 0]
-        self.unit_size = None  # unit size: 4
-        self.data = None  # numpy array of float32
-        self.unpacked = False  # do we have data?
+        self.numb_of_set: int = None  # number of sets: 1
+        self.timestamp: float = None  # timestamp: 1690449193.0428836
+        self.spacing: list = None  # spacing: [4.80...01, 2.5, 1.0] [distance, time, ]
+        self.origin: list = None  # origin: [0.0, 0.0, 0.0]
+        self.index: list = None  # index: [0, 3333, 0, 1599, 0, 0]
+        self.unit_size: int | float = None  # unit size: 4
+        self.data: np.array = None  # numpy array of float32
+        self.unpacked: bool = False  # do we have data?
         if buffer is not None:
             self.unpack(buffer)
 
