@@ -12,6 +12,7 @@ import argparse
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import json
+import pytz
 
 from config import PATH, SPS, DX, IP, PORT
 
@@ -98,7 +99,7 @@ class ZMQDASPACKET:
             "=id", buffer[0]
         )  # row number? and timestamp
         time_stamp = datetime.datetime.fromtimestamp(
-            self.timestamp
+            self.timestamp, tz=pytz.UTC
         )  # convert timestamp to datetime
         attributes = unpack(
             "ddddddiiiiiii", buffer[1]
@@ -113,7 +114,9 @@ class ZMQDASPACKET:
                 self.tpoints, -1
             )
         except ValueError as err:
-            log.error(f"Data matrix and shape info mismatched {self.timestamp} {err}")
+            log.exception(
+                f"Data matrix and shape info mismatched {self.timestamp} {err}"
+            )
             self.unpacked = False
         log.debug(
             f"\
@@ -184,10 +187,10 @@ class DASREADER:
             self.socket.connect(self.zmqurl)
             self.connected = True
         except zmq.ZMQError as err:
-            log.error(f"Error connecting to ZMQ server on {self.zmqurl}: {err}")
+            log.exception(f"Error connecting to ZMQ server on {self.zmqurl}: {err}")
             return False
         except Exception as err:
-            log.error(f"Unknown Error: {err}")
+            log.exception(f"Unknown Error: {err}")
             return False
         log.info("Connected to ZMQ server")
         return True
@@ -199,7 +202,7 @@ class DASREADER:
                 self.socket.close()
                 self.context.term()
             except Exception as err:
-                log.error(f"Unknown Error: {err}")
+                log.exception(f"Unknown Error: {err}")
                 return False
             log.info("Disconnected from ZMQ server")
         return True
@@ -225,7 +228,7 @@ class DASREADER:
                 # part 3 is data
             except zmq.ZMQError as err:
                 if self.connected:
-                    log.error(f"Error with ZMQ: {err}")
+                    log.exception(f"Error with ZMQ: {err}")
                     self.disconnect()
             if reply is not None:
                 packet = ZMQDASPACKET()
@@ -251,7 +254,7 @@ class DASREADER:
             try:
                 os.makedirs(outputdir)
             except Exception as err:
-                log.error(f"Cannot create folder {outputdir}: {err}")
+                log.exception(f"Cannot create folder {outputdir}: {err}")
                 raise RuntimeError("Output path issues") from err
         return True
 
@@ -299,9 +302,9 @@ class DASREADER:
         try:
             f = h5py.File(os.path.join(PATH, save_dir, file_name), "x")
         except FileExistsError as err:
-            log.error(f"File Exists {save_dir}{os.sep}{file_name}: {err}")
+            log.exception(f"File Exists {save_dir}{os.sep}{file_name}: {err}")
         except Exception as err:
-            log.error(f"Cannot save file {save_dir}{os.sep}{file_name}: {err}")
+            log.exception(f"Cannot save file {save_dir}{os.sep}{file_name}: {err}")
         if f is not None:
             f.create_dataset("data_down", data=data)
             f.close()
