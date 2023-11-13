@@ -85,7 +85,7 @@ source .venv_client/bin/activate
 ```
 Run DAS client
 ```
-python src/das_client.py
+python src/client.py
 ```
 
 #### Using bash 
