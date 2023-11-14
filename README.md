@@ -4,12 +4,10 @@
 
 - [DAS Client](#das-client)
   - [Table of Contents](#table-of-contents)
-  - [Abou ](#abou-)
+  - [About ](#about-)
   - [Getting Started ](#getting-started-)
-    - [Prerequisites](#prerequisites)
     - [Installing](#installing)
     - [Configuration](#configuration)
-      - [Specific configuration](#specific-configuration)
   - [Usage ](#usage-)
     - [Manual use](#manual-use)
       - [Using Python](#using-python)
@@ -19,23 +17,24 @@
       - [Activating service](#activating-service)
 
 
-## Abou <a name = "about"></a>
+## About <a name = "about"></a>
 
-DAS client requests ZMQ packets from FEBUS system and saves them as `.h5` files.
+This section provides a brief overview of the DAS client, which requests ZMQ packets from FEBUS system and saves them as `.h5` files.
 
 ## Getting Started <a name = "getting_started"></a>
 
-To set up DAS client, you have to ensure that you have fresh Python installation (>=3.10).
-
-### Prerequisites
-
-This project has keep-alive script, which could help ensure stability over time. Keep-alive implemented using `bash` and `systemd-service`, so it is **UNIX-systems with systemd only**.
+This section provides instructions on how to set up the DAS client. It is important to note that a fresh Python installation (>=3.10) is required to run this project. Additionally, this project ships with optional keep-alive script that helps ensure stability over time. The keep-alive script is implemented using `bash` and `systemd-service`, so it is only compatible with UNIX-systems with systemd.
 
 ### Installing
 
 A step by step series of guide that tell you how to get DAS client running.
 
-**Make sure, that you completed all installation steps described in [README](../README.md).**
+Clone this project
+
+```
+git clone https://github.com/Antcating/DAS-Febus-Client.git
+cd DAS-Febus-Client
+```
 
 Create virtual environment for DAS client:
 
@@ -55,18 +54,54 @@ pip install -r requirements_client.txt
 
 ### Configuration 
 
-#### Specific configuration
+All configuration is done through `config.ini` file located at the root of the project. 
 
-Specifically for DAS client `config.ini` contains several parameters: `IP`, `PORT` of the DAS server (which will send packet to client).
+**LOCALPATH**
+
+- `LOCALPATH` is **absolute** PATH to the LOCAL directory where DAS Client will store hdf5 files. 
+
+> Example:
+> ```
+> LOCALPATH=/home/earthquake_lover/DAS_DATA
+> ```
+DAS client will write packets to `LOCALPATH/YYYYMMDD`.
+
+**SPS and DX**
+
+- `SPS` is expected time frequency after data downsampling (in Hz). By default 100. 
+
+- `DX` is expected spatial spacing after data downsampling (in m). By default 9.6 
+
+**IP and PORT**
+
+Used for connection to ZMQ server for receiving packets.
 If you are using client locally, you can set up local client as in example:
 
 > Example:
-```
-IP=127.0.0.1
-PORT=16667
-```
+> ```
+> IP=127.0.0.1
+> PORT=16667
+> ```
 
-Ensure that you provided properly updated `config.ini` and you ready to go.
+**LOG**
+
+Used for configuring internal logger. Logger file is located in `LOCALPATH/log`.
+
+- `LOG_LEVEL` variable defines the log level of the file logger, and is set to `INFO` by default.
+
+- `CONSOLE_LOG` is a boolean (True/False) that defines whether console output should be logged. It is set to True by default.
+
+- `CONSOLE_LOG_LEVEL` defines the log level of the console logger. If not provided, it defaults to `INFO`.
+
+**Telegram**
+
+Enables exception logging to Telegram using TelegramBotAPI
+
+- `USE_TELEGRAM` a boolean (True/False) that enables or disables Telegram logging.
+
+- `token` a string that represents the token provided by Telegram to operate the bot.
+
+- `channel` a string that represents the Telegram channel where notifications will be sent.
 
 ## Usage <a name = "usage"></a>
 
@@ -98,7 +133,7 @@ In the `client.sh` in root directory of the project change `PROJECT_PATH` to **a
 > Example:
 ```
 # Changing directory to main project directory
-pushd /home/earthquake_lover/Projects/DAS-FEBUS-RECEIVER
+pushd /home/earthquake_lover/Projects/DAS-Febus-Client
 ```
 
 Change `client.sh` permissions to include execute permission (700):
