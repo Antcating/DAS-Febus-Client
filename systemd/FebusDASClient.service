@@ -1,0 +1,9 @@
+[Unit]
+Description=Keeps DAS client alive using wrapper
+
+[Service]
+Restart=always
+ExecStart=/bin/bash PROJECT_PATH/client.sh
+
+[Install]
+WantedBy=multi-user.target
