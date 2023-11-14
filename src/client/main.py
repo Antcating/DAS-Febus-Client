@@ -5,8 +5,7 @@ from client.unpack_zmq import ZMQDASPACKET
 from client.save_hdf import save_data
 from config import IP, PORT
 
-from log.logger import log
-
+from log.main_logger import logger as log
 # Define the server endpoint
 SERVER_ENDPOINT = f"tcp://{IP}:{PORT}"
 
@@ -52,13 +51,15 @@ def main():
             # If the receive operation times out,
             # close the client socket and create a new one
             log.warning(f"Timeout: {e}")
+            client.close()
             attempts -= 1
             if attempts == 0:
                 log.warning("Server is not responding, resetting connection")
                 last_timestamp = 0
+
+                context.term()
                 context = get_context()
                 attempts = 3
-            client.close()
             client = get_client(context)
         except Exception as e:
             # If there is any other error, exit the loop

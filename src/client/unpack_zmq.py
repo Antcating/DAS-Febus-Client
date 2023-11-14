@@ -4,7 +4,7 @@ import numpy as np
 from struct import unpack
 import pytz
 
-from log.logger import log
+from log.main_logger import logger as log
 
 DIR_NAME_FORMAT = "{yyyymmdd}"
 FILENAME_PREFIX = "das_SR_"  # path for saving files
