@@ -1,11 +1,6 @@
-from contextlib import nullcontext
 import requests
 import telebot
-import configparser
-
-config = configparser.ConfigParser()
-config.read("config.ini", encoding="UTF-8")
-
+from config import config_dict
 
 def get_bot():
     """Creates Telegram bot to be used
@@ -13,11 +8,11 @@ def get_bot():
     Returns:
         telebot.bot: Returns created Telegram bot instance
     """
-    try:
-        token = config["Telegram"]["token"]
+    if config_dict["Telegram"]["token"]:
+        token = config_dict["Telegram"]["token"]
         bot = telebot.TeleBot(token=token, parse_mode="None")
-    except KeyError:
-        bot = nullcontext
+    else:
+        bot = None
         print("Bot token is not provided")
     return bot
 
@@ -28,19 +23,17 @@ def get_channel():
     Returns:
         str: Channel username/id
     """
-    try:
-        channel = config["Telegram"]["channel"]
-    except KeyError:
+    if config_dict["Telegram"]["channel"]:
+        channel = config_dict["Telegram"]["channel"]
+    else:
         print("Channel username/id is required to use Telegram bot")
         channel = None
     return channel
 
 
 def send_telegram_error(message: str):
-    try:
-        use_telegram = config["Telegram"]["USE_TELEGRAM"]
-
-        if use_telegram == "1":
+    if config_dict["Telegram"]["USE_TELEGRAM"]:
+        if config_dict["Telegram"]["USE_TELEGRAM"] == "True":
             bot = get_bot()
             channel = get_channel()
             if bot and channel:
@@ -48,6 +41,6 @@ def send_telegram_error(message: str):
                     bot.send_message(channel, message)
                 except requests.exceptions.ConnectionError:
                     print("Telegram log error failed: No connection established")
-    except KeyError:
+    else:
         print("Telegram status is uncertain or not provided")
         return
