@@ -86,6 +86,7 @@ class ZMQClient:
                 self.last_timestamp = 0
                 self.context.term()
                 self.context = zmq.Context()
+                self.client = self.context.socket(zmq.REQ)
                 self.attempts = 3
             self.create_socket()
         except Exception as e:
