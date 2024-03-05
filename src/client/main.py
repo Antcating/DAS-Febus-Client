@@ -13,6 +13,7 @@ from log.main_logger import logger as log
 DIR_NAME_FORMAT = "{yyyymmdd}"
 FILENAME_PREFIX = "das_SR_"  # path for saving files
 
+
 class ZMQClient:
     """
     A class to create a ZMQ client and send message to the server.
@@ -48,49 +49,95 @@ class ZMQClient:
         self.client = None
 
         self.last_timestamp = 0
-        self.attempts = 3
 
         self.create_socket()
 
     def create_socket(self):
         """
         Create a ZMQ socket.
+
+        This method creates a ZeroMQ (ZMQ) socket of type REQ and sets various socket options.
+        It then connects the socket to the server and logs the socket connection details.
+
+        Parameters:
+            None
+
+        Returns:
+            None
         """
+        # Create a ZMQ socket of type REQ
         self.client = self.context.socket(zmq.REQ)
+
+        # Set socket options
         self.client.setsockopt(zmq.IMMEDIATE, 1)
         self.client.setsockopt(zmq.LINGER, 0)
-        self.client.setsockopt(zmq.RCVTIMEO, 3000)
+        self.client.setsockopt(zmq.RCVHWM, 1)
+        self.client.setsockopt(zmq.SNDHWM, 1)
+        self.client.setsockopt(zmq.BACKLOG, 1)
         self.client.setsockopt(zmq.SNDTIMEO, 3000)
+
+        # Connect the socket to the server
         self.client.connect(f"tcp://{IP}:{PORT}")
+
+        # Log socket connection details
+        log.debug(f"Connected to server {IP}:{PORT}")
+        log.debug(f"IMMEDIATE: {self.client.getsockopt(zmq.IMMEDIATE)}")
+        log.debug(f"LINGER: {self.client.getsockopt(zmq.LINGER)}")
+        log.debug(f"RCVHWM: {self.client.getsockopt(zmq.RCVHWM)}")
+        log.debug(f"SNDHWM: {self.client.getsockopt(zmq.SNDHWM)}")
+        log.debug(f"BACKLOG: {self.client.getsockopt(zmq.BACKLOG)}")
+        log.debug(f"SNDTIMEO: {self.client.getsockopt(zmq.SNDTIMEO)}")
+        log.debug(f"RCVTIMEO: {self.client.getsockopt(zmq.RCVTIMEO)}")
 
     def send_message(self):
         """
         Send message to the server.
+
+        This method sends a message to the server using a client socket. It performs the following steps:
+        1. Sends the current timestamp to the server.
+        2. Waits for a response from the server for a maximum of 10 seconds.
+        3. If a response is received within the timeout period:
+           - Parses the response into a ZMQDASPACKET object.
+           - If the timestamp in the response is different from the last timestamp sent:
+             - Saves the data from the packet.
+             - Updates the last timestamp.
+        4. If no response is received within the timeout period:
+           - Raises a zmq.error.Again exception indicating a polling timeout.
+        5. Handles any other exceptions that may occur during the message exchange.
+
+        Note: If a KeyboardInterrupt is raised while waiting for a response, the program will exit.
+
+        Raises:
+            zmq.error.Again: If a polling timeout occurs.
+            Exception: If an unexpected error occurs during the message exchange.
+
         """
         log.info(f"Sending message to server, {self.last_timestamp}")
         try:
             self.client.send(array.array("d", [self.last_timestamp]))
-            response = self.client.recv_multipart()
-            print("Message received from server")
-            packet = ZMQDASPACKET(response)
-            if self.last_timestamp != packet.timestamp:
-                packet.save_data()
-                self.last_timestamp = packet.timestamp
-            self.attempts = 3
+
+            poller = zmq.Poller()
+            poller.register(self.client, zmq.POLLIN)
+
+            if poller.poll(10000):  # Poll the client socket for 10 seconds
+                response = self.client.recv_multipart()
+                log.info("Message received from server")
+                packet = ZMQDASPACKET(response)
+                if self.last_timestamp != packet.timestamp:
+                    packet.save_data()
+                    self.last_timestamp = packet.timestamp
+            else:
+                raise zmq.error.Again("Polling timeout")
         except zmq.error.Again as e:
-            log.error(f"Timeout: {e}")
-            self.client.close()
-            self.attempts -= 1
-            if self.attempts == 0:
-                log.error("Server is not responding, resetting connection")
-                self.last_timestamp = 0
-                self.context.term()
-                self.context = zmq.Context()
-                self.client = self.context.socket(zmq.REQ)
-                self.attempts = 3
-            self.create_socket()
+            log.warning(f"Timeout: {e}")
+            log.warning("Server not responding. Restarting connection")
+            self.client.close()  # Close the client socket
+            self.create_socket()  # Create a new client socket
         except Exception as e:
             log.exception(f"Error: {e}")
+            raise zmq.error.Again(
+                "Unexpected error during message exchange with server. Check logs for details."
+            )
         except KeyboardInterrupt:
             log.info("Exiting")
             exit(0)
@@ -173,15 +220,9 @@ class ZMQDASPACKET:
         buffer : list
             List of data received from the ZMQ server.
         """
-        self.numb_of_set, self.timestamp = unpack(
-            "=id", buffer[0]
-        )
-        time_stamp = datetime.datetime.fromtimestamp(
-            self.timestamp, tz=pytz.UTC
-        )
-        attributes = unpack(
-            "ddddddiiiiiii", buffer[1]
-        )
+        self.numb_of_set, self.timestamp = unpack("=id", buffer[0])
+        time_stamp = datetime.datetime.fromtimestamp(self.timestamp, tz=pytz.UTC)
+        attributes = unpack("ddddddiiiiiii", buffer[1])
         self.spacing = list(attributes[:3])
         self.origin = list(attributes[3:6])
         self.index = list(attributes[6:12])
@@ -206,19 +247,13 @@ Received {np.multiply(*self.data.shape)} data points @ {time_stamp} ({self.times
         Save data into a file.
         """
         if SPS:
-            time_down_factor = round(
-                self.sps / SPS
-            )
-            if (
-                time_down_factor == 0 or self.tpoints % time_down_factor != 0
-            ):
+            time_down_factor = round(self.sps / SPS)
+            if time_down_factor == 0 or self.tpoints % time_down_factor != 0:
                 time_down_factor = 1
         else:
             time_down_factor = 1
         if DX:
-            data_step = round(
-                DX / self.dx
-            )
+            data_step = round(DX / self.dx)
         else:
             data_step = 1
         if SPS == 0:
@@ -229,9 +264,7 @@ Received {np.multiply(*self.data.shape)} data points @ {time_stamp} ({self.times
             data = self.data.reshape(-1, time_down_factor, self.spoints).mean(axis=1)
         data = data[:, ::data_step]
 
-        packet_time = datetime.datetime.fromtimestamp(
-            self.timestamp, datetime.UTC
-        )
+        packet_time = datetime.datetime.fromtimestamp(self.timestamp, datetime.UTC)
         yyyymmdd = packet_time.strftime("%Y%m%d")
         save_dir = f"{DIR_NAME_FORMAT.format(yyyymmdd=yyyymmdd)}"
         file_name = f"{FILENAME_PREFIX}{self.timestamp:.5f}.h5"
@@ -340,6 +373,6 @@ def path_check(outputdir):
         try:
             os.makedirs(outputdir)
         except Exception as err:
-            print(f"Cannot create folder {outputdir}: {err}")
+            log.error(f"Cannot create folder {outputdir}: {err}")
             raise RuntimeError("Output path issues") from err
     return True
