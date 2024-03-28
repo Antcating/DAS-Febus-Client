@@ -56,8 +56,8 @@ class ZMQClient:
         """
         Create a ZMQ socket.
 
-        This method creates a ZeroMQ (ZMQ) socket of type REQ and sets various socket options.
-        It then connects the socket to the server and logs the socket connection details.
+        This method creates a ZeroMQ socket of type REQ and sets various socket options.
+        It connects the socket to the server and logs the socket connection details.
 
         Parameters:
             None
@@ -74,7 +74,7 @@ class ZMQClient:
         self.client.setsockopt(zmq.RCVHWM, 1)
         self.client.setsockopt(zmq.SNDHWM, 1)
         self.client.setsockopt(zmq.BACKLOG, 1)
-        self.client.setsockopt(zmq.SNDTIMEO, 3000)
+        self.client.setsockopt(zmq.SNDTIMEO, 3500)
 
         # Connect the socket to the server
         self.client.connect(f"tcp://{IP}:{PORT}")
@@ -93,7 +93,8 @@ class ZMQClient:
         """
         Send message to the server.
 
-        This method sends a message to the server using a client socket. It performs the following steps:
+        This method sends a message to the server using a client socket. 
+        It performs the following steps:
         1. Sends the current timestamp to the server.
         2. Waits for a response from the server for a maximum of 10 seconds.
         3. If a response is received within the timeout period:
@@ -105,7 +106,8 @@ class ZMQClient:
            - Raises a zmq.error.Again exception indicating a polling timeout.
         5. Handles any other exceptions that may occur during the message exchange.
 
-        Note: If a KeyboardInterrupt is raised while waiting for a response, the program will exit.
+        Note: If a KeyboardInterrupt is raised while waiting for a response, 
+        the program will exit.
 
         Raises:
             zmq.error.Again: If a polling timeout occurs.
@@ -136,7 +138,7 @@ class ZMQClient:
         except Exception as e:
             log.exception(f"Error: {e}")
             raise zmq.error.Again(
-                "Unexpected error during message exchange with server. Check logs for details."
+                "Unexpected error during message exchange with server. Check logs."
             )
         except KeyboardInterrupt:
             log.info("Exiting")
