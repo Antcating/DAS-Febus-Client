@@ -288,23 +288,22 @@ Received {np.multiply(*self.data.shape)} data points @ {time_stamp} ({self.times
         else:
             log.warning(f"Cannot save data for packet {self.timestamp}")
 
-        if not os.path.isfile(os.path.join(PATH, save_dir, "attrs.txt")):
-            with open(
-                os.path.join(PATH, save_dir, "attrs.json"), "w", encoding="UTF-8"
-            ) as attrs_file:
-                attrs_file.write(
-                    json.dumps(
-                        {
-                            "spacing": self.spacing,
-                            "origin": self.origin,
-                            "index": self.index,
-                            "packet_time": self.timestamp,
-                            "down_factor_time": time_down_factor,
-                            "down_factor_space": data_step,
-                            "unit_size": self.unit_size,
-                        }
-                    )
+        with open(
+            os.path.join(PATH, save_dir, f"{self.timestamp:.5f}.json"), "w", encoding="UTF-8"
+        ) as attrs_file:
+            attrs_file.write(
+                json.dumps(
+                    {
+                        "spacing": self.spacing,
+                        "origin": self.origin,
+                        "index": self.index,
+                        "packet_time": self.timestamp,
+                        "down_factor_time": time_down_factor,
+                        "down_factor_space": data_step,
+                        "unit_size": self.unit_size,
+                    }
                 )
+            )
 
     @property
     def spoints(self):
