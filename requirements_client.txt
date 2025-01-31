@@ -6,5 +6,5 @@ numpy==1.26.2
 pyTelegramBotAPI==4.14.0
 pytz==2023.3.post1
 pyzmq==25.1.1
-requests==2.31.0
+requests==2.32.2
 urllib3==2.1.0
